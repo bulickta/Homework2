@@ -1,0 +1,142 @@
+---
+title: "Programming in Base R"
+format: html
+editor: visual
+---
+
+## Vector Practice
+Create our desired vectors for pre and post dose blood pressure, adding subject names, and calculating the differences for each subject pre to post dose. Prints all the created vectors and the mean for differences.
+```{r}
+pre <- c(130, 128, 116, 124, 133, 134, 118, 126, 114, 127, 141, 138, 128, 140, 137, 131, 120, 128, 139, 135)
+post <- c(114, 98, 113, 99, 107, 116, 113, 111, 119, 117, 101, 119, 130, 122, 106, 106, 124, 102, 117, 113)
+subjectids <- paste("Subject", 1:20, sep = "_")
+names(pre) <- subjectids
+names(post) <- subjectids
+diffs <- post-pre
+pre
+post
+diffs
+mean(diffs)
+```
+Subsets the differences vector above into only the cases where there is a positive change (i.e., the blood pressure decreases after treatment). Prints the index of the subjects where there is a positive outcome, as well as the values for the change and the mean change in this subset.
+```{r}
+goodindex <- which(diffs < 0)
+gooddiffs <- diffs[goodindex]
+goodindex
+gooddiffs
+mean(gooddiffs)
+```
+
+## Data Frame Practice
+Creates a data frame from the vectors in the section above, then subsets and print the data frame where the change in bp is a positive result.
+```{r}
+data <- data.frame(subjectids,pre,post,diffs)
+colnames(data) <- c("patient","pre_bp","post_bp","diff_bp")
+goodchange <- data[data$diff_bp <0,]
+goodchange
+```
+Adds an indicator variable for a healthy blood pressure and prints table
+```{r}
+for (i in 1:length(data$post_bp)){
+if (data$post_bp[i]<120){
+  data$lowpost[i] <- TRUE
+}
+  else {
+    data$lowpost[i] <- FALSE
+  }
+}
+knitr::kable(data)
+```
+
+## List Practice
+Create a placebo data frame to match the one above
+```{r}
+pre2 <- c(138, 135, 147, 117, 152, 134, 114, 121, 131, 130)
+post2 <- c(105, 136, 123, 130, 134, 143, 135, 139, 120, 124)
+subjectids2 <- paste("Subject", 1:10, sep = "_")
+names(pre2) <- subjectids2
+names(post2) <- subjectids2
+diffs2 <- post2-pre2
+data2 <- data.frame(subjectids2,pre2,post2,diffs2)
+colnames(data2) <- c("patient","pre_bp","post_bp","diff_bp")
+for (i in 1:length(data2$post_bp)){
+if (data2$post_bp[i]<120){
+  data2$lowpost[i] <- TRUE
+}
+  else {
+    data2$lowpost[i] <- FALSE
+  }
+}
+```
+Merge the two data frames into a list, access the treatment df from the list in three separate ways, and access the pre_bp values from the placebo list in one code line
+```{r}
+mylist <- list(data,data2)
+names(mylist) <- c("treatment","placebo")
+mylist[1]
+mylist[[1]]
+mylist$treatment
+mylist$placebo$pre_bp
+```
+
+## Control Flow Practice
+Add a variable categorizing the post-dose BP values as optimal, borderline, and high in both the treatment and placebo groups. Prints both data frames for reference
+```{r}
+data$status <- character(20)
+data2$status <- character(10)
+for (i in 1:length(data$post_bp)){
+  if (data$post_bp[i] <= 120) {
+    data$status[i] <- "optimal"
+  }
+  else if (data$post_bp[i] <= 130) {
+    data$status[i] <- "borderline"
+  }
+  else if (data$post_bp[i] > 130) {
+    data$status[i] <- "high"
+  }
+  else {
+    "Error"
+  }
+}
+for (i in 1:length(data2$post_bp)){
+  if (data2$post_bp[i] <= 120) {
+    data2$status[i] <- "optimal"
+  }
+  else if (data$post_bp[i] <= 130) {
+    data2$status[i] <- "high"
+  }
+  else if (data2$post_bp[i] > 130) {
+    data2$status[i] <- "optimal"
+  }
+  else {
+    "Error"
+  }
+}
+data
+data2
+```
+
+## Function Writing Practice
+Creates a function to automatically compute statistics comparing values from a treatment and placebo group.
+```{r}
+summarystat <- function(treat,place,stat="mean"){
+  my_fun <- get(stat)
+  pre1 <- my_fun(treat$pre_bp)
+  pre2 <- my_fun(place$pre_bp)
+  post1 <- my_fun(treat$post_bp)
+  post2 <- my_fun(place$post_bp)
+  diff1 <- my_fun(treat$diff_bp)
+  diff2 <- my_fun(place$diff_bp)
+  statslist <- list(pre1,pre2,post1,post2,diff1,diff2)
+  listnames <- c(paste(stat,"for treatment group pre-BP"), paste(stat,"for placebo group pre-BP"), paste(stat,"for treatment group post-BP"), paste(stat,"for placebo group post-BP"), paste(stat,"for treatment group difference-BP"), paste(stat,"for placebo group difference-BP"))
+  names(statslist) <- listnames
+  return(statslist)
+}
+```
+Runs the function above for mean, variance, standard deviation, minimum, and maximum stats.  I initially created this output as a list, but I changed it to a simple vector at the end to print on the same line for a better output using the unlist() function.
+```{r}
+unlist(summarystat(data,data2))
+unlist(summarystat(data,data2,"var"))
+unlist(summarystat(data,data2,"sd"))
+unlist(summarystat(data,data2,"min"))
+unlist(summarystat(data,data2,"max"))
+```
